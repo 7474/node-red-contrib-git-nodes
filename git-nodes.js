@@ -175,7 +175,9 @@ module.exports = function (RED) {
         cmd = [
           'cd ' + RED.settings.userDir,
           'git add ' + flowsFilePath,
+          'git add ' + flowsFilePath + '.txt',
           'git add ' + 'nodes',
+          'git add ' + 'tabs',
         ].join(';')
         execSync(cmd)
 
