@@ -49,7 +49,7 @@ module.exports = function (RED) {
       var flowsFilePath = userDir + '/' + flowFile
 
       var flowsJson = fs.readFileSync(flowsFilePath, 'utf-8')
-      
+
       if (fs.pathExistsSync(RED.settings.userDir + '/nodes')) {
         // remove nodes files
         fs.emptyDirSync(RED.settings.userDir + '/nodes')
@@ -58,13 +58,28 @@ module.exports = function (RED) {
         // make dir
         fs.mkdirsSync(RED.settings.userDir + '/nodes')
       }
+      if (fs.pathExistsSync(RED.settings.userDir + '/tabs')) {
+        // remove tabs files
+        fs.emptyDirSync(RED.settings.userDir + '/tabs')
+      }
+      else {
+        // make dir
+        fs.mkdirsSync(RED.settings.userDir + '/tabs')
+      }
       // make nodes files
+      let toHumanReadable = function(obj) {
+        return JSON.stringify(obj, null, 4).replace(/\\n/g, '\n').replace(/\\"/g, '"')
+      }
       var flowsObj = JSON.parse(flowsJson)
+      fs.writeFileSync(flowsFilePath + '.txt', toHumanReadable(flowsObj))
       flowsObj.forEach(function (value) {
-        fs.mkdirsSync(RED.settings.userDir + '/nodes/' + value.id)
-        Object.keys(value).forEach(function (key) {
-          fs.writeFileSync(RED.settings.userDir + '/nodes/' + value.id + '/' + key, value[key])
-        })
+        fs.writeFileSync(RED.settings.userDir + '/nodes/' + value.type + '-' + value.id + '.txt', toHumanReadable(value))
+        if (value.type == 'tab') {
+            value.nodes = flowsObj.filter(function(node) {
+                return value.id == node.z
+            })
+            fs.writeFileSync(RED.settings.userDir + '/tabs/' + value.type + '-' + value.id + '.txt', toHumanReadable(value))
+        }
       })
 
       var cmd = ''
@@ -130,7 +145,7 @@ module.exports = function (RED) {
             if (node.sourcebranch || !isSourceBranch) {
               sourceBranch = currentBranch
             }
-            
+
             // When the branch exists, change it.
             if (isLocalBranch) {
               console.log("isLocalBranch true")
@@ -153,7 +168,7 @@ module.exports = function (RED) {
               console.log("isRemoteBranch false")
               execSync('git push -u origin ' + node.branch, execOpt)
             }
-          } 
+          }
         }
 
         // git add flows
@@ -185,14 +200,14 @@ module.exports = function (RED) {
           cmd = gitrm.join(';')
           execSync(cmd)
         }
-        
+
         // git status
         cmd = [
           'cd ' + RED.settings.userDir,
           'git status --untracked-files=no',
         ].join(';')
         var gitStatus = execSync(cmd).toString()
-        
+
         var gitCommit = ''
         var gitPush = ''
 
